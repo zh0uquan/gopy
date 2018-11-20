@@ -44,13 +44,11 @@ func IsDigit(s string) bool {
         return err == nil
 }
 
-func (interprter *Interprter) GetNextChar() string {
-        text := interprter.text
-        interprter.pos += 1
-        if interprter.pos > len(text) - 1 {
+func GetNextChar(text string, pos int) string {
+        if pos >= len(text) - 1 {
                 return ""
         } else {
-                return string(text[interprter.pos])
+                return string(text[pos+1])
         }
 }
 
@@ -62,20 +60,35 @@ func (interprter *Interprter) GetNextToken() error {
                 return nil
         }
 
-        current_char := string(text[interprter.pos])
+        currentChar := string(text[interprter.pos])
 
-        if IsDigit(current_char) {
-                interprter.currentToken = Token{INTEGER, current_char}
+        if currentChar == " " {
+                interprter.pos += 1
+                return interprter.GetNextToken()
+        }
+
+        if IsDigit(currentChar) {
+                integerChar := currentChar
+
+                nextChar := GetNextChar(text, interprter.pos)
+                for IsDigit(nextChar) {
+                        fmt.Println(nextChar)
+                        interprter.pos += 1
+                        integerChar += nextChar
+                        nextChar = GetNextChar(text, interprter.pos)
+                }
+
+                interprter.currentToken = Token{INTEGER, integerChar}
                 interprter.pos += 1
                 return nil
         }
 
-        switch current_char {
+        switch currentChar {
         case "+",
              "-",
              "*",
              "/":
-             interprter.currentToken = Token{OPERATOR[current_char], current_char}
+             interprter.currentToken = Token{OPERATOR[currentChar], currentChar}
              interprter.pos += 1
              return nil
         }
@@ -83,9 +96,9 @@ func (interprter *Interprter) GetNextToken() error {
         return errors.New("Error parsing input")
 }
 
-func (interprter *Interprter) Eat(token_type string) error {
-        fmt.Println(interprter.currentToken._type, token_type)
-        if interprter.currentToken._type == token_type {
+func (interprter *Interprter) Eat(tokenType string) error {
+        // fmt.Println(interprter.currentToken._type, token_type)
+        if interprter.currentToken._type == tokenType {
                 interprter.GetNextToken()
                 return nil
         } else {
@@ -109,10 +122,10 @@ func compute(left int64, right int64, operator string) (int64, error) {
 }
 
 func Expr(interprter *Interprter) (string, error) {
-        err := interprter.GetNextToken()
-        if err != nil {
+        if err := interprter.GetNextToken(); err != nil {
                 return "", err
         }
+
         left, _ := strconv.ParseInt(interprter.currentToken.value, 10, 64)
         if err := interprter.Eat(INTEGER); err != nil {
                 return "", err
@@ -143,8 +156,6 @@ func Expr(interprter *Interprter) (string, error) {
         } else {
                 return "", err
         }
-
-
 }
 
 
