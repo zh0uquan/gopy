@@ -1,0 +1,3 @@
+### About this repo
+
+PURE GOLANG LEARNING PROJECT
