@@ -12,7 +12,17 @@ const (
         INTEGER = "INTEGER"
         PLUS = "PLUS"
         EOF = "EOF"
+        MINUS = "MINUS"
+        MULTIPLY = "MULTIPLY"
+        DIVIDE = "DIVIDE"
 )
+
+var OPERATOR = map[string]string{
+        "+": PLUS,
+        "-": MINUS,
+        "*": MULTIPLY,
+        "/": DIVIDE,
+}
 
 type Token struct {
         _type string
@@ -34,6 +44,16 @@ func IsDigit(s string) bool {
         return err == nil
 }
 
+func (interprter *Interprter) GetNextChar() string {
+        text := interprter.text
+        interprter.pos += 1
+        if interprter.pos > len(text) - 1 {
+                return ""
+        } else {
+                return string(text[interprter.pos])
+        }
+}
+
 func (interprter *Interprter) GetNextToken() error {
         text := interprter.text
 
@@ -50,22 +70,42 @@ func (interprter *Interprter) GetNextToken() error {
                 return nil
         }
 
-        if current_char == "+" {
-                interprter.currentToken = Token{PLUS, current_char}
-                interprter.pos += 1
-                return nil
+        switch current_char {
+        case "+",
+             "-",
+             "*",
+             "/":
+             interprter.currentToken = Token{OPERATOR[current_char], current_char}
+             interprter.pos += 1
+             return nil
         }
 
         return errors.New("Error parsing input")
 }
 
 func (interprter *Interprter) Eat(token_type string) error {
+        fmt.Println(interprter.currentToken._type, token_type)
         if interprter.currentToken._type == token_type {
                 interprter.GetNextToken()
                 return nil
         } else {
                 return errors.New("Error parsing input")
         }
+}
+
+
+func compute(left int64, right int64, operator string) (int64, error) {
+        switch operator {
+        case PLUS:
+                return left + right, nil
+        case MINUS:
+                return left - right, nil
+        case MULTIPLY:
+                return left * right, nil
+        case DIVIDE:
+                return left / right, nil
+        }
+        return 0, errors.New("Operator not supported")
 }
 
 func Expr(interprter *Interprter) (string, error) {
@@ -78,9 +118,18 @@ func Expr(interprter *Interprter) (string, error) {
                 return "", err
         }
 
-        // op := interprter.currentToken
-        if err := interprter.Eat(PLUS); err != nil {
-                return "", err
+        op := interprter.currentToken
+        fmt.Println(op.String())
+        switch op.value  {
+        case "+",
+             "-",
+             "*",
+             "/":
+             if err := interprter.Eat(op._type); err != nil {
+                     return "", err
+             }
+        default:
+                return "", errors.New("Operator not supported")
         }
 
         right, _ := strconv.ParseInt(interprter.currentToken.value, 10, 64)
@@ -88,8 +137,14 @@ func Expr(interprter *Interprter) (string, error) {
                 return "", err
         }
 
-        result := left + right
-        return fmt.Sprintf("%v", result), nil
+        result, err := compute(left, right, op._type)
+        if err == nil {
+                return fmt.Sprintf("%v", result), nil
+        } else {
+                return "", err
+        }
+
+
 }
 
 
