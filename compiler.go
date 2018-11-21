@@ -125,14 +125,24 @@ func compute(left int64, right int64, operator string) (int64, error) {
 	return 0, errors.New("Operator not supported")
 }
 
+func (interprter *Interprter) Term() (int64, error) {
+        value, _ := strconv.ParseInt(interprter.currentToken.value, 10, 64)
+        if err := interprter.Eat(INTEGER); err != nil {
+                return 0, err
+        } else {
+                return value, nil
+        }
+}
+
+
 func Expr(interprter *Interprter) (string, error) {
 
         interprter.currentToken = interprter.GetNextToken()
 
-	left, _ := strconv.ParseInt(interprter.currentToken.value, 10, 64)
-	if err := interprter.Eat(INTEGER); err != nil {
-		return "", err
-	}
+        left, err := interprter.Term()
+	if err != nil {
+                return "", err
+        }
 
 	op := interprter.currentToken
 	switch op.value {
@@ -148,10 +158,10 @@ func Expr(interprter *Interprter) (string, error) {
 		return "", errors.New("Operator not supported")
 	}
 
-	right, _ := strconv.ParseInt(interprter.currentToken.value, 10, 64)
-	if err := interprter.Eat(INTEGER); err != nil {
-		return "", err
-	}
+        right, err := interprter.Term()
+        if err != nil {
+                return "", err
+        }
 
 	result, err := compute(left, right, op._type)
 	if err == nil {
