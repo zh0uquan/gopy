@@ -111,16 +111,16 @@ func (interprter *Interprter) Eat(tokenType string) error {
 	}
 }
 
-func compute(left int64, right int64, operator string) (int64, error) {
+func compute(left int64, right int64, operator string) (float64, error) {
 	switch operator {
 	case PLUS:
-		return left + right, nil
+		return float64(left + right), nil
 	case MINUS:
-		return left - right, nil
+		return float64(left - right), nil
 	case MULTIPLY:
-		return left * right, nil
+		return float64(left) * float64(right), nil
 	case DIVIDE:
-		return left / right, nil
+		return float64(left) / float64(right), nil
 	}
 	return 0, errors.New("Operator not supported")
 }
