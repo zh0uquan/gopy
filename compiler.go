@@ -33,10 +33,14 @@ func (token Token) String() string {
 	return fmt.Sprintf("Token(%v, %v)", token._type, token.value)
 }
 
+type Lexer struct {
+        pos int
+        text string
+}
+
 type Interprter struct {
-	pos          int
-	text         string
-        currentToken Token
+	lexer Lexer
+	currentToken Token
 }
 
 func IsDigit(s string) bool {
@@ -44,71 +48,58 @@ func IsDigit(s string) bool {
 	return err == nil
 }
 
-func (interprter *Interprter) GetCurrentChar() string {
-	if interprter.pos > len(interprter.text) - 1 {
+func (lexer *Lexer) GetCurrentChar() string {
+	if lexer.pos > len(lexer.text)-1 {
 		return ""
 	} else {
-		return string(interprter.text[interprter.pos])
+		return string(lexer.text[lexer.pos])
 	}
 }
 
-func (interprter *Interprter) GetNextChar() string {
-        interprter.pos += 1
-        return interprter.GetCurrentChar()
+func (lexer *Lexer) GetNextChar() string {
+	lexer.pos += 1
+	return lexer.GetCurrentChar()
 }
 
-func (interprter *Interprter) SkipWhiteSpace() {
-        currentChar := interprter.GetCurrentChar()
-        for currentChar != "" && currentChar == " " {
-                currentChar = interprter.GetNextChar()
-        }
-}
-
-
-func (interprter *Interprter) GetNextToken() Token {
-        currentChar := interprter.GetCurrentChar()
-
-        for currentChar != "" {
-                // skip whitespace
-                if currentChar == " " {
-                        interprter.SkipWhiteSpace()
-                        currentChar = interprter.GetCurrentChar()
-                        continue
-                }
-
-                if IsDigit(currentChar) {
-                        integerChar := currentChar
-                        nextChar := interprter.GetNextChar()
-                        for IsDigit(nextChar) {
-                                integerChar += nextChar
-                                nextChar = interprter.GetNextChar()
-                        }
-                        interprter.pos +=1
-                        return Token{INTEGER, integerChar}
-                }
-
-                switch currentChar {
-        	case    "+",
-        		"-",
-        		"*",
-        		"/":
-                        interprter.pos +=1
-        		return Token{OPERATOR[currentChar], currentChar}
-        	}
-
-        }
-
-        return Token{EOF, ""}
-}
-
-func (interprter *Interprter) Eat(tokenType string) error {
-	// fmt.Println(interprter.currentToken._type, token_type)
-	if interprter.currentToken._type == tokenType {
-		interprter.currentToken = interprter.GetNextToken()
-		return nil
-	} else {
-		return errors.New("Error parsing input")
+func (lexer *Lexer) SkipWhiteSpace() {
+	currentChar := lexer.GetCurrentChar()
+	for currentChar != "" && currentChar == " " {
+		currentChar = lexer.GetNextChar()
 	}
+}
+
+func (lexer *Lexer) GetNextToken() Token {
+	currentChar := lexer.GetCurrentChar()
+
+	for currentChar != "" {
+		// skip whitespace
+		if currentChar == " " {
+			lexer.SkipWhiteSpace()
+			currentChar = lexer.GetCurrentChar()
+			continue
+		}
+
+		if IsDigit(currentChar) {
+			integerChar := currentChar
+			nextChar := lexer.GetNextChar()
+			for IsDigit(nextChar) {
+				integerChar += nextChar
+				nextChar = lexer.GetNextChar()
+			}
+			return Token{INTEGER, integerChar}
+		}
+
+		switch currentChar {
+		case "+",
+			"-",
+			"*",
+			"/":
+			lexer.pos += 1
+			return Token{OPERATOR[currentChar], currentChar}
+		}
+
+	}
+	return Token{EOF, ""}
 }
 
 func compute(left int64, right int64, operator string) (float64, error) {
@@ -125,51 +116,68 @@ func compute(left int64, right int64, operator string) (float64, error) {
 	return 0, errors.New("Operator not supported")
 }
 
-func (interprter *Interprter) Term() (int64, error) {
-        value, _ := strconv.ParseInt(interprter.currentToken.value, 10, 64)
-        if err := interprter.Eat(INTEGER); err != nil {
-                return 0, err
-        } else {
-                return value, nil
-        }
+func (interprter *Interprter) Eat(tokenType string) error {
+	if interprter.currentToken._type == tokenType {
+		interprter.currentToken = interprter.lexer.GetNextToken()
+		return nil
+	} else {
+		return errors.New("Error parsing input")
+	}
+}
+
+func (interprter *Interprter) Factor() (int64, error) {
+        fmt.Println(interprter.currentToken)
+	value, _ := strconv.ParseInt(interprter.currentToken.value, 10, 64)
+	if err := interprter.Eat(INTEGER); err != nil {
+		return 0, err
+	} else {
+		return value, nil
+	}
 }
 
 
-func Expr(interprter *Interprter) (string, error) {
+func (interprter *Interprter) Order() (float64, error) {
+        interprter.currentToken = interprter.lexer.GetNextToken()
 
-        interprter.currentToken = interprter.GetNextToken()
-
-        left, err := interprter.Term()
+        left, err := interprter.Factor()
 	if err != nil {
-                return "", err
-        }
+		return 0, err
+	}
 
 	op := interprter.currentToken
 	switch op.value {
-	case    "+",
+	case "+",
 		"-",
 		"*",
 		"/":
 		if err := interprter.Eat(op._type); err != nil {
-                        fmt.Println(op._type)
-			return "", err
+			fmt.Println(op._type)
+			return 0, err
 		}
 	default:
-		return "", errors.New("Operator not supported")
+		return 0, errors.New("Operator not supported")
 	}
 
-        right, err := interprter.Term()
-        if err != nil {
-                return "", err
-        }
-
-	result, err := compute(left, right, op._type)
+	right, err := interprter.Factor()
+	if err != nil {
+		return 0, err
+	}
+        result, err := compute(left, right, op._type)
 	if err == nil {
-		return fmt.Sprintf("%v", result), nil
+		return result, nil
 	} else {
-		return "", err
+		return 0, err
 	}
 }
+
+func (interprter *Interprter) Expr() (float64, error) {
+        result, err := interprter.Order()
+        if err != nil {
+                return 0, err
+        }
+	return result, nil
+}
+
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
@@ -178,12 +186,15 @@ func main() {
 		scanner.Scan()
 		text := scanner.Text()
 		if text != "" {
-			interprter := &Interprter{
+			lexer := Lexer{
 				pos:          0,
 				text:         text,
-				currentToken: Token{},
 			}
-			result, err := Expr(interprter)
+                        interprter := &Interprter{
+                                lexer: lexer,
+                                currentToken: Token{},
+                        }
+			result, err := interprter.Expr()
 			if err == nil {
 				fmt.Println(result)
 			} else {
