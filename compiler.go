@@ -125,56 +125,85 @@ func (interprter *Interprter) Eat(tokenType string) error {
 	}
 }
 
-func (interprter *Interprter) Factor() (int64, error) {
+func (interprter *Interprter) Factor() (float64, error) {
         fmt.Println(interprter.currentToken)
 	value, _ := strconv.ParseInt(interprter.currentToken.value, 10, 64)
 	if err := interprter.Eat(INTEGER); err != nil {
 		return 0, err
 	} else {
-		return value, nil
+		return float64(value), nil
 	}
 }
 
 
 func (interprter *Interprter) Order() (float64, error) {
-        interprter.currentToken = interprter.lexer.GetNextToken()
-
-        left, err := interprter.Factor()
+        result, err := interprter.Factor()
 	if err != nil {
 		return 0, err
 	}
 
-	op := interprter.currentToken
-	switch op.value {
-	case "+",
-		"-",
-		"*",
-		"/":
-		if err := interprter.Eat(op._type); err != nil {
-			fmt.Println(op._type)
-			return 0, err
-		}
-	default:
-		return 0, errors.New("Operator not supported")
-	}
+        operator := interprter.currentToken.value
+        for isMultDivOperator(operator) {
+                order, err := interprter.Factor()
+                if err != nil {
+                        return 0, err
+                }
+                if operator == "*" {
+                        interprter.Eat(MULTIPLY)
+                        result *= order
+                } else if operator == "/" {
+                        interprter.Eat(DIVIDE)
+                        result /= order
+                }
+        }
 
-	right, err := interprter.Factor()
-	if err != nil {
-		return 0, err
-	}
-        result, err := compute(left, right, op._type)
-	if err == nil {
-		return result, nil
-	} else {
-		return 0, err
-	}
+        return result, nil
+}
+func isMultDivOperator(char string) bool {
+        for _, operator := range "*/" {
+                if char == string(operator) {
+                        return true
+                }
+        }
+        return false
+}
+
+func isPlusMinusOperator(char string) bool {
+        for _, operator := range "+-" {
+                if char == string(operator) {
+                        return true
+                }
+        }
+        return false
 }
 
 func (interprter *Interprter) Expr() (float64, error) {
+        interprter.currentToken = interprter.lexer.GetNextToken()
+
         result, err := interprter.Order()
         if err != nil {
                 return 0, err
         }
+
+        for isPlusMinusOperator(interprter.currentToken.value) {
+                operator := interprter.currentToken.value
+                switch operator {
+                case    "+",
+                        "-":
+                        interprter.Eat(OPERATOR[operator])
+
+                        order, err := interprter.Order()
+                        if err != nil {
+                                return 0, err
+                        }
+                        if operator == "+" {
+                                result = result + order
+                        } else if operator == "-" {
+                                result = result - order
+                        }
+                }
+        }
+
 	return result, nil
 }
 
