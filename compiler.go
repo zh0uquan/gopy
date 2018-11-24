@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+        "github.com/fatih/color"
 )
 
 const (
@@ -15,8 +16,8 @@ const (
 	MINUS    = "MINUS"
 	MULTIPLY = "MULTIPLY"
 	DIVIDE   = "DIVIDE"
-        LPAREN   = "LPAREN"
-        RPAREN   = "RPAREN"
+	LPAREN   = "LPAREN"
+	RPAREN   = "RPAREN"
 )
 
 var OPERATOR = map[string]string{
@@ -98,12 +99,12 @@ func (lexer *Lexer) GetNextToken() Token {
 			"/":
 			lexer.pos += 1
 			return Token{OPERATOR[currentChar], currentChar}
-                case "(":
-                        lexer.pos += 1
-                        return Token{LPAREN, currentChar}
-                case ")":
-                        lexer.pos += 1
-                        return Token{RPAREN, currentChar}
+		case "(":
+			lexer.pos += 1
+			return Token{LPAREN, currentChar}
+		case ")":
+			lexer.pos += 1
+			return Token{RPAREN, currentChar}
 		}
 
 	}
@@ -121,27 +122,27 @@ func (interprter *Interprter) Eat(tokenType string) error {
 
 func (interprter *Interprter) Factor() (float64, error) {
 	fmt.Println(interprter.currentToken)
-        if interprter.currentToken._type == INTEGER {
-                value, _ := strconv.ParseInt(interprter.currentToken.value, 10, 64)
-        	if err := interprter.Eat(INTEGER); err != nil {
-        		return 0, err
-        	} else {
-        		return float64(value), nil
-        	}
+	if interprter.currentToken._type == INTEGER {
+		value, _ := strconv.ParseInt(interprter.currentToken.value, 10, 64)
+		if err := interprter.Eat(INTEGER); err != nil {
+			return 0, err
+		} else {
+			return float64(value), nil
+		}
 
-        } else if interprter.currentToken._type == LPAREN {
-                if err := interprter.Eat(LPAREN); err != nil {
-        		return 0, err
-        	} else {
-        		res, _ := interprter.Expr()
-                        if err := interprter.Eat(RPAREN); err != nil {
-                		return 0, err
-                	}
-                        return res, nil
-        	}
-        } else {
-                return 0, errors.New("incorrect factor")
-        }
+	} else if interprter.currentToken._type == LPAREN {
+		if err := interprter.Eat(LPAREN); err != nil {
+			return 0, err
+		} else {
+			res, _ := interprter.Expr()
+			if err := interprter.Eat(RPAREN); err != nil {
+				return 0, err
+			}
+			return res, nil
+		}
+	} else {
+		return 0, errors.New("incorrect factor")
+	}
 
 }
 
@@ -191,9 +192,9 @@ func isPlusMinusOperator(char string) bool {
 
 func (interprter *Interprter) Expr() (float64, error) {
 	// init token
-        if interprter.currentToken == (Token{}) {
-	        interprter.currentToken = interprter.lexer.GetNextToken()
-        }
+	if interprter.currentToken == (Token{}) {
+		interprter.currentToken = interprter.lexer.GetNextToken()
+	}
 	result, err := interprter.Order()
 	if err != nil {
 		return 0, err
@@ -222,8 +223,9 @@ func (interprter *Interprter) Expr() (float64, error) {
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
+        color.Blue("Welcome to Gopy!")
 	for {
-		fmt.Printf("\033[31mcalc>\033[0m")
+		fmt.Printf("%v", color.BlueString(">>>"))
 		scanner.Scan()
 		text := scanner.Text()
 		if text != "" {
